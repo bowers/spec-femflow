@@ -485,6 +485,11 @@ public:
     return data[comp];
   }
 
+#if defined(SPEC_MSVC_VECARRAY_CONVERT)
+    // Convert from dealii::VectorizedArray<double,n> to double        
+  operator double() const { return data[0]; }
+#endif
+
   /**
    * Addition
    */

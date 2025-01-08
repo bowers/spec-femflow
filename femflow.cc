@@ -357,7 +357,11 @@ namespace NavierStokes_DG
     return (parameters.gamma - 1.) * inverse_R *
            (gradients[dim + 1] -
             euler_velocity<dim>(conserved_variables) *
+#if defined(_MSC_VER)
+              velocity_gradient<dim,Number>(conserved_variables, gradients));
+#else
               velocity_gradient(conserved_variables, gradients));
+#endif
   }
 
 
@@ -370,7 +374,11 @@ namespace NavierStokes_DG
                  const Parameters &                                parameters)
   {
     const Tensor<2, dim, Number> grad_u =
+#if defined(_MSC_VER)
+      velocity_gradient<dim,Number>(conserved_variables, gradients);
+#else
       velocity_gradient(conserved_variables, gradients);
+#endif
     const Number scaled_div_u =
       parameters.viscosity * (2. / 3.) * trace(grad_u);
 
@@ -989,7 +997,11 @@ namespace NavierStokes_DG
             const auto w_q      = phi.get_value(q);
             const auto velocity = euler_velocity<dim>(w_q);
             const auto velocity_grad =
+#if defined(_MSC_VER)
+              velocity_gradient<dim,Number>(w_q, phi.get_gradient(q));
+#else
               velocity_gradient(w_q, phi.get_gradient(q));
+#endif
             local_squared[0] += velocity.norm_square() * JxW;
             local_squared[1] +=
               scalar_product(velocity_grad, velocity_grad) * JxW;
@@ -1317,8 +1329,13 @@ namespace NavierStokes_DG
             {
               const auto value    = eval_euler.get_value(q);
               const auto grad     = eval_euler.get_gradient(q);
+#if defined(_MSC_VER)
+              const auto vel_flux = viscous_flux<dim,Number>(value, grad, parameters);
+              eval_vel.submit_gradient((const dealii::Tensor<2,dim,NavierStokes_DG::VectorizedArrayType>)(Number(-0.5 * time_step) * vel_flux), q);
+#else
               const auto vel_flux = viscous_flux(value, grad, parameters);
               eval_vel.submit_gradient(Number(-0.5 * time_step) * vel_flux, q);
+#endif
               Tensor<1, dim, VectorizedArrayType> momentum;
               for (unsigned int d = 0; d < dim; ++d)
                 momentum[d] = value[d + 1];
@@ -1383,8 +1400,13 @@ namespace NavierStokes_DG
               const auto grad_w_m = eval_m.get_gradient(q);
               const auto grad_w_p = eval_p.get_gradient(q);
 
+#if defined(_MSC_VER)
+              const auto flux_q1 = viscous_flux<dim,Number>(w_m, grad_w_m, parameters);
+              const auto flux_q2 = viscous_flux<dim,Number>(w_p, grad_w_p, parameters);
+#else
               const auto flux_q1 = viscous_flux(w_m, grad_w_m, parameters);
               const auto flux_q2 = viscous_flux(w_p, grad_w_p, parameters);
+#endif
               Tensor<1, dim, VectorizedArrayType> value_flux;
               for (unsigned int d = 0; d < dim; ++d)
                 value_flux[d] = 0.5 * (flux_q1[d] * normal);
@@ -1399,10 +1421,17 @@ namespace NavierStokes_DG
               for (unsigned int d = 0; d < dim + 2; ++d)
                 for (unsigned int e = 0; e < dim; ++e)
                   w_jump[d][e] = (w_m[d] - w_p[d]) * (Number(0.5) * normal[e]);
+#if defined(_MSC_VER)
+              eval_vel_m.submit_gradient(
+                (const dealii::Tensor<2,dim,NavierStokes_DG::VectorizedArrayType>)((-time_step * 0.5) * viscous_flux<dim,Number>(w_m, w_jump, parameters)), q);
+              eval_vel_p.submit_gradient(
+                (const dealii::Tensor<2,dim,NavierStokes_DG::VectorizedArrayType>)((-time_step * 0.5) * viscous_flux<dim,Number>(w_p, w_jump, parameters)), q);
+#else
               eval_vel_m.submit_gradient(
                 (-time_step * 0.5) * viscous_flux(w_m, w_jump, parameters), q);
               eval_vel_p.submit_gradient(
                 (-time_step * 0.5) * viscous_flux(w_p, w_jump, parameters), q);
+#endif
             }
 
           eval_vel_m.integrate_scatter(EvaluationFlags::values |
