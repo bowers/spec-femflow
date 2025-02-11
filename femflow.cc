@@ -998,7 +998,7 @@ namespace NavierStokes_DG
             const auto velocity = euler_velocity<dim>(w_q);
             const auto velocity_grad =
 #if defined(_MSC_VER)
-              velocity_gradient<dim,Number>(w_q, phi.get_gradient(q));
+              velocity_gradient<dim,VectorizedArrayType>(w_q, phi.get_gradient(q));
 #else
               velocity_gradient(w_q, phi.get_gradient(q));
 #endif
@@ -1330,7 +1330,7 @@ namespace NavierStokes_DG
               const auto value    = eval_euler.get_value(q);
               const auto grad     = eval_euler.get_gradient(q);
 #if defined(_MSC_VER)
-              const auto vel_flux = viscous_flux<dim,Number>(value, grad, parameters);
+              const auto vel_flux = viscous_flux<dim,VectorizedArrayType>(value, grad, parameters);
               eval_vel.submit_gradient((const dealii::Tensor<2,dim,NavierStokes_DG::VectorizedArrayType>)(Number(-0.5 * time_step) * vel_flux), q);
 #else
               const auto vel_flux = viscous_flux(value, grad, parameters);
@@ -1401,8 +1401,8 @@ namespace NavierStokes_DG
               const auto grad_w_p = eval_p.get_gradient(q);
 
 #if defined(_MSC_VER)
-              const auto flux_q1 = viscous_flux<dim,Number>(w_m, grad_w_m, parameters);
-              const auto flux_q2 = viscous_flux<dim,Number>(w_p, grad_w_p, parameters);
+              const auto flux_q1 = viscous_flux<dim,VectorizedArrayType>(w_m, grad_w_m, parameters);
+              const auto flux_q2 = viscous_flux<dim,VectorizedArrayType>(w_p, grad_w_p, parameters);
 #else
               const auto flux_q1 = viscous_flux(w_m, grad_w_m, parameters);
               const auto flux_q2 = viscous_flux(w_p, grad_w_p, parameters);
@@ -1423,9 +1423,9 @@ namespace NavierStokes_DG
                   w_jump[d][e] = (w_m[d] - w_p[d]) * (Number(0.5) * normal[e]);
 #if defined(_MSC_VER)
               eval_vel_m.submit_gradient(
-                (const dealii::Tensor<2,dim,NavierStokes_DG::VectorizedArrayType>)((-time_step * 0.5) * viscous_flux<dim,Number>(w_m, w_jump, parameters)), q);
+                (const dealii::Tensor<2,dim,NavierStokes_DG::VectorizedArrayType>)((-time_step * 0.5) * viscous_flux<dim,VectorizedArrayType>(w_m, w_jump, parameters)), q);
               eval_vel_p.submit_gradient(
-                (const dealii::Tensor<2,dim,NavierStokes_DG::VectorizedArrayType>)((-time_step * 0.5) * viscous_flux<dim,Number>(w_p, w_jump, parameters)), q);
+                (const dealii::Tensor<2,dim,NavierStokes_DG::VectorizedArrayType>)((-time_step * 0.5) * viscous_flux<dim,VectorizedArrayType>(w_p, w_jump, parameters)), q);
 #else
               eval_vel_m.submit_gradient(
                 (-time_step * 0.5) * viscous_flux(w_m, w_jump, parameters), q);
